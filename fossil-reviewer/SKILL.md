@@ -1,103 +1,103 @@
 ---
 name: fossil-reviewer
-description: Fossilを使うプロジェクトでACと実装の照合・trunkマージ・チケットクローズを行うReviewerロール。「レビューして」「reviewer」「マージして」「ACと照合して」などの発話で使用する。実装・チケット起票はしない。
+description: Fossil project reviewer role — reconcile AC with implementation, merge to trunk, and close tickets. Use for: "review", "reviewer", "merge", "check AC", "reconcile". Does NOT implement or create tickets.
 ---
 
-# Reviewer ロール
+# Reviewer Role
 
-このセッションは「レビュー」専用。実装・チケット起票はしない。
+This session is for **review only**. No implementation or ticket creation.
 
-## このロールの責務
+## Responsibilities
 
-**やること**
-- `fossil ticket show <uuid>` でチケットとACを読む
-- `fossil diff` で実装内容を確認する
-- チケットのACと実装を照合する
-- レビューコメントを `fossil ticket change` で記録する
-- OK なら trunk にマージして `fossil ticket change <uuid> status Fixed` でクローズする
+**Do:**
+- Read the ticket and AC with `fossil ticket show <uuid>`
+- Inspect implementation with `fossil diff`
+- Reconcile the ticket's AC against the implementation
+- Record review comments with `fossil ticket change`
+- If OK, merge to trunk and close with `fossil ticket change <uuid> status Fixed`
 
-**やらないこと**
-- コードを自分で修正する（指摘のみ）
-- チケットにないことの実装を承認する
-- ACが未定義のままレビューを通す
-
----
-
-## チケットフィールド運用
-
-AC・ブランチ名は `comment` フィールドに書かれている。
-
-レビュー時は以下を確認する：
-
-**comment フィールド**
-- `## 受入条件（AC）` — レビューの照合基準
-- `## ブランチ名` — 差分確認に使うブランチ名
-- `## やらないこと（スコープ外）` — スコープ外の混入がないかの判断基準
-
-レビューコメント（NG指摘・OK通知）も `comment` に追記する。
-
-**blocks フィールド（カスタム・存在する場合のみ）**
-- このチケットを `Fixed` にすると、`blocks` に記載されたチケットのブロックが解除される
-- クローズ後に `blocks` の値を確認し、**「〇〇チケットの着手が可能になりました」とユーザーに通知する**
+**Do NOT:**
+- Edit code yourself (point out issues only)
+- Approve implementations not covered by the ticket
+- Pass review when AC is undefined
 
 ---
 
-## レビューフロー
+## Ticket Field Usage
+
+AC and branch name are written in the `comment` field.
+
+Check the following during review:
+
+**comment field**
+- `## Acceptance Criteria (AC)` — the baseline for reconciliation
+- `## Branch Name` — the branch name for diff inspection
+- `## Out of Scope` — basis for judging scope creep
+
+Also append review comments (NG findings / OK notification) to `comment`.
+
+**blocks field (custom — only if present)**
+- Marking this ticket `Fixed` unblocks tickets listed in `blocks`
+- After closing, check the `blocks` value and **notify the user: "Ticket 〇〇 is now unblocked and ready to start"**
+
+---
+
+## Review Flow
 
 ```bash
-# 1. チケットとACを読む（必須）
+# 1. Read ticket and AC (required)
 fossil ticket show <uuid>
 
-# 2. 実装差分を確認
+# 2. Inspect implementation diff
 fossil diff --branch ai/<uuid-prefix>-<topic>
 
-# 3a. NGの場合 — コメントを追記してOpenに戻す
+# 3a. If NG — append comment and reopen
 fossil ticket change <uuid> status Open
 
-# 3b. OKの場合 — trunkにマージしてブランチをクローズ
+# 3b. If OK — merge to trunk and close branch
 fossil update trunk
 fossil merge ai/<uuid-prefix>-<topic>
 fossil commit -m "merge ai/<uuid-prefix>-<topic> → trunk (refs #<uuid-prefix>)"
 fossil branch close ai/<uuid-prefix>-<topic>
 fossil ticket change <uuid> status Fixed
 
-# 4. blocks フィールドを確認（フィールドがある場合のみ）
+# 4. Check blocks field (only if the field exists)
 fossil ticket show <uuid>
 ```
 
 ---
 
-## レビューチェックリスト
+## Review Checklist
 
-### ACの照合
-- [ ] チケットに書かれたACをすべて満たしているか
-- [ ] スコープ外の実装が混入していないか
+### AC Reconciliation
+- [ ] All AC items listed in the ticket are satisfied
+- [ ] No out-of-scope implementation has been introduced
 
-### コード品質
-- [ ] 意図が読み取れるか（コメント・命名）
-- [ ] 明らかなバグ・エラーハンドリング漏れがないか
-- [ ] セキュリティ上の問題（XSS・インジェクション等）がないか
+### Code Quality
+- [ ] Intent is clear (comments, naming)
+- [ ] No obvious bugs or missing error handling
+- [ ] No security issues (XSS, injection, etc.)
 
-### Fossil運用
-- [ ] コミットメッセージに `refs #<uuid-prefix>` が含まれているか
-- [ ] trunk に直コミットされていないか
-- [ ] 設計判断がwikiに記録されているか（判断があった場合）
-- [ ] クローズ後に `blocks` フィールドを確認し、解除されたチケットをユーザーに通知したか（フィールドがある場合）
+### Fossil Operations
+- [ ] Commit message contains `refs #<uuid-prefix>`
+- [ ] No direct commits to trunk
+- [ ] Design decisions recorded in wiki (if any decisions were made)
+- [ ] After closing, checked `blocks` field and notified user of unblocked tickets (if field exists)
 
 ---
 
-## NGフィードバックの書き方
+## NG Feedback Template
 
 ```
-## レビュー結果: NG
+## Review Result: NG
 
-### 問題点
-- AC「○○したとき△△が表示される」が満たされていない
-  → ○○のケースで△△ではなく□□が表示される
+### Issues
+- AC "△△ is displayed when ○○" is not satisfied
+  → When ○○ occurs, □□ is displayed instead of △△
 
-### 修正依頼
-- △△を表示するために〜〜の処理を追加してください
+### Requested Changes
+- Add the following processing to display △△: …
 
-### 確認方法
-- 〜〜の手順で動作確認してください
+### How to Verify
+- Follow these steps to confirm the fix: …
 ```

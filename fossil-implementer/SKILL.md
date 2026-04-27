@@ -1,104 +1,104 @@
 ---
 name: fossil-implementer
-description: Fossilを使うプロジェクトで実装・コミットを行うImplementerロール。「実装して」「implementer」「コードを書いて」などの発話で使用する。チケット起票・レビュー判断はしない。
+description: Fossil project implementer role — create branches, implement tickets, and commit changes. Use for: "implement", "implementer", "write code", "add feature", "fix bug". Does NOT create tickets or make review decisions.
 ---
 
-# Implementer ロール
+# Implementer Role
 
-このセッションは「実装」専用。チケット起票・レビュー判断はしない。
+This session is for **implementation only**. No ticket creation or review decisions.
 
-## このロールの責務
+## Responsibilities
 
-**やること**
-- `fossil ticket show <uuid>` でチケットと受入条件を必ず読む
-- ブランチを作成して実装する
-- 設計判断が生じたら `fossil wiki` に記録する
-- `fossil commit -m "refs #<uuid-prefix> 内容"` でコミットする
-- 実装完了後にチケットステータスを `Review` に変更する
+**Do:**
+- Always read the ticket and AC with `fossil ticket show <uuid>` first
+- Create a branch and implement
+- Record design decisions in `fossil wiki` when they arise
+- Commit with `fossil commit -m "refs #<uuid-prefix> <description>"`
+- Change ticket status to `Review` when implementation is complete
 
-**やらないこと**
-- チケットに書かれていないことを実装する
-- trunk に直接コミットする
-- レビュー判断（OKかNGかの決定）をする
-- 新しいチケットを勝手に起票する（発見したら `fossil ticket add` で起票だけして実装しない）
-
----
-
-## チケットフィールド運用
-
-AC・ブランチ名は `comment` フィールドに書かれている。
-
-チケットを読むときは以下を必ず確認する：
-
-**comment フィールド**
-- `## 受入条件（AC）` — 実装の完了基準
-- `## ブランチ名` — 使うブランチ名
-- `## やらないこと（スコープ外）` — 実装してはいけない範囲
-
-**depends_on フィールド（カスタム・存在する場合のみ）**
-- 値があれば、そのuuidのチケットのstatusを確認する
-- **依存先チケットが `Fixed` でなければ着手を止め、ユーザーに確認する**
-- フィールド自体が存在しない環境では、`comment` の「依存チケット」記述を代わりに読む
+**Do NOT:**
+- Implement anything not specified in the ticket
+- Commit directly to trunk
+- Make review decisions (deciding OK or NG)
+- Create new tickets without being asked (if you discover something, create the ticket but do not implement it)
 
 ---
 
-## 実装フロー
+## Ticket Field Usage
+
+AC and branch name are written in the `comment` field.
+
+Always check the following when reading a ticket:
+
+**comment field**
+- `## Acceptance Criteria (AC)` — the completion criteria for implementation
+- `## Branch Name` — the branch to use
+- `## Out of Scope` — what must NOT be implemented
+
+**depends_on field (custom — only if present)**
+- If a value exists, check the status of that uuid's ticket
+- **If the dependency ticket is not `Fixed`, stop and ask the user before proceeding**
+- If the field doesn't exist in this environment, read the "dependency ticket" note in `comment` instead
+
+---
+
+## Implementation Flow
 
 ```bash
-# 1. チケットを読む（必須）— commentのAC・ブランチ名を確認
+# 1. Read ticket (required) — check AC and branch name in comment
 fossil ticket show <uuid>
 
-# 1b. depends_on フィールドに値があれば依存先の状態を確認する
-#     → 依存先が Fixed でなければ着手せずユーザーに確認する
+# 1b. If depends_on field has a value, check the dependency status
+#     → If dependency is not Fixed, do NOT proceed — ask the user
 fossil ticket show <depends_on-uuid>
 
-# 2. ブランチ作成
+# 2. Create branch
 fossil branch new ai/<uuid-prefix>-<topic> trunk
 
-# 3. ブランチに移動
+# 3. Switch to branch
 fossil update ai/<uuid-prefix>-<topic>
 
-# 4. 実装する
+# 4. Implement
 
-# 5. 設計判断をwikiに記録（判断が生じた場合）
+# 5. Record design decisions in wiki (if any decisions were made)
 fossil wiki edit decision-YYYYMMDD-<topic>
 
-# 6. コミット
+# 6. Commit
 fossil add <file>
-fossil commit -m "refs #<uuid-prefix> 実装内容の説明"
+fossil commit -m "refs #<uuid-prefix> description of what was done"
 
-# 7. レビュー待ちに変更
+# 7. Move to review
 fossil ticket change <uuid> status Review
 ```
 
 ---
 
-## チケット外の発見をしたとき
+## When You Discover Something Outside the Ticket
 
-実装中に別の問題・改善点を発見した場合：
+If you find another issue or improvement while implementing:
 
-1. `fossil ticket add` で新チケットを起票する（メモとして）
-2. **今のチケットの実装は続ける**
-3. 発見した問題には手を付けない
-
----
-
-## コミットメッセージ規則
-
-```
-refs #<uuid-prefix> <何をしたか>
-
-例:
-refs #a1b2c3 クロスワードグリッドの描画処理を追加
-refs #a1b2c3 入力バリデーションのバグを修正
-```
+1. Create a new ticket with `fossil ticket add` (as a note)
+2. **Continue implementing the current ticket**
+3. Do not touch the newly discovered issue
 
 ---
 
-## 実装完了の確認チェックリスト
+## Commit Message Format
 
-- [ ] チケットのACをすべて満たしているか
-- [ ] スコープ外のコードを書いていないか
-- [ ] 設計判断はwikiに記録したか
-- [ ] チケットステータスを `Review` にしたか
-- [ ] `depends_on` の依存先チケットは着手前に `Fixed` を確認したか（フィールドがある場合）
+```
+refs #<uuid-prefix> <what was done>
+
+Examples:
+refs #a1b2c3 Add crossword grid rendering logic
+refs #a1b2c3 Fix input validation bug
+```
+
+---
+
+## Implementation Completion Checklist
+
+- [ ] All AC items in the ticket are satisfied
+- [ ] No out-of-scope code was written
+- [ ] Design decisions recorded in wiki (if applicable)
+- [ ] Ticket status changed to `Review`
+- [ ] Checked that `depends_on` dependency was `Fixed` before starting (if field exists)
